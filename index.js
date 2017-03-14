@@ -8,10 +8,10 @@ let feedbase = x => x == feedConfig[chain.env] ? "Standard" : code({}, [x])
 let own = x => x.owner == coinbase()
 
 fetch.coins = $ => begin([
-  chain.factory.count,
+  chain.SimplecoinFactory.count,
   (n, $) => times(n, (i, $) => begin([
 
-    bind(chain.factory.coins, i),
+    bind(chain.SimplecoinFactory.coins, i),
 
     (address, $) => parallel({
       props: bind(extract_contract_props, chain.Simplecoin, address),
@@ -23,6 +23,7 @@ fetch.coins = $ => begin([
     (props, $) => parallel({
       roles : bind(extract_authority_roles, props),
     }, hopefully(({ roles }) => {
+      roles.owner = roles.ownerAddr == coinbase()
       $(null, assign(props, { roles }))
     })),
 
@@ -48,7 +49,7 @@ function extract_contract_props(type, address, $) {
 function extract_authority_roles(props, $) {
   let role_auth = chain.SimpleRoleAuth.at(props.authority)
   parallel(
-    { owner:  async.constant(props.owner == coinbase()),
+    { ownerAddr:  bind(role_auth.authority),
       admin:  bind(role_auth.isAdmin,  coinbase()),
       issuer: bind(role_auth.isIssuer, coinbase()),
       holder: bind(role_auth.isHolder, coinbase()),
@@ -86,9 +87,9 @@ let register_view = ({ address }) => (
 )
 
 
-let owner_view = ({ address, owner, authority }) => div({}, [
-  owner == coinbase() ? "You" : code({}, [owner]),
-  owner == coinbase() && a({
+let owner_view = ({ address, authority, roles }) => div({}, [
+  roles.owner ? "You" : code({}, [roles.ownerAddr]),
+  roles.owner && a({
     style: { float: "right" },
     onClick: () => set_owner(address, authority),
   }, ["Transfer"]),
@@ -96,13 +97,13 @@ let owner_view = ({ address, owner, authority }) => div({}, [
 
 let role_view = ({ roles }) => div({}, [
     roles.owner  && "Owner | ",
-    roles.admin  && "Admin | ",
-    roles.issuer && "Issuer | ",
-    roles.holder && "Holder",
+    (roles.owner || roles.admin)  && "Admin | ",
+    (roles.owner || roles.issuer) && "Issuer | ",
+    (roles.owner || roles.holder) && "Holder",
 ])
 
-let role_control_view = ({ owner, authority }) => div({}, [
-  owner == coinbase() && div({ style: { float: "left" }}, [
+let role_control_view = ({ authority, roles }) => div({}, [
+  roles.owner && div({ style: { float: "left" }}, [
     "Admin: ",
     a({ onClick: () => add_role(authority, "admin"), }, ["Add"]),
     "/",
@@ -116,7 +117,7 @@ let role_control_view = ({ owner, authority }) => div({}, [
     "/",
     a({ onClick: () => del_role(authority, "holder"), }, ["Remove"]),
   ]),
-  owner != coinbase() && "Unauthorized",
+  !roles.owner && "Unauthorized",
 ])
 
 let balance_view = ({ address, balance, roles }) => div({}, [
@@ -141,7 +142,7 @@ let type_id_view = ({ address, roles }, { id, token }) => div({}, [
 let vault_view = ({ address, roles }, { id, token, vault }) => div({}, [
   code({}, vault),
   !!Number(token)
-    && roles.admin
+    && (roles.owner || roles.admin)
     && a({ style: { float: "right" },
            onClick: () => set_vault(address, id),
          }, ["Change vault"])
@@ -150,7 +151,7 @@ let vault_view = ({ address, roles }, { id, token, vault }) => div({}, [
 let feed_view = ({ address, roles }, { id, token, feed }) => div({}, [
   feed,
   !!Number(token)
-    && roles.admin
+    && (roles.owner || roles.admin)
     && a({ style: { float: "right" },
            onClick: () => set_feed(address, id),
          }, ["Change price feed"])
@@ -159,7 +160,7 @@ let feed_view = ({ address, roles }, { id, token, feed }) => div({}, [
 let spread_view = ({ address, roles }, { id, token, spread }) => div({}, [
   Number(spread),
   !!Number(token)
-    && roles.admin
+    && (roles.owner || roles.admin)
     && a({ style: { float: "right" },
            onClick: () => set_spread(address, id),
          }, ["Change spread"])
@@ -168,7 +169,7 @@ let spread_view = ({ address, roles }, { id, token, spread }) => div({}, [
 let ceiling_view = ({ address, roles }, { id, token, ceiling }) => div({}, [
   Number(ceiling),
   !!Number(token)
-    && roles.admin
+    && (roles.owner || roles.admin)
     && a({ style: { float: "right" },
            onClick: () => set_ceiling(address, id),
          }, ["Change debt ceiling"])
@@ -214,7 +215,7 @@ views.coins = ({ coins=[] }) => {
         "Debt ceiling":     y => ceiling_view(x, y),
         "Debt":             y => Number(y.debt),
         "Your balance":     y => collateral_balance_view(x, y),
-      }), x.roles.admin && register_view(x)
+      }), (x.roles.owner || x.roles.admin) && register_view(x)
     ]
   }) : small({}, ["(none)"])
 }
@@ -256,7 +257,7 @@ views.coinSymbol = ({ coinSymbol }) => input({
 })
 
 function create_coin() {
-  send(chain.factory.create, [
+  send(chain.SimplecoinFactory.create, [
     document.getElementById('feedAddress').value,
     document.getElementById('coinName').value,
     document.getElementById('coinSymbol').value,
@@ -269,7 +270,7 @@ function create_coin() {
 function set_owner(address, authority) {
   let new_value = prompt(`New owner for coin ${address}:`)
   if (new_value) {
-    send(chain.SimpleRoleAuth.at(authority).setOwner, [new_value], hopefully(tx => {
+    send(chain.SimpleRoleAuth.at(authority).setAuthority, [new_value], hopefully(tx => {
       alert(`Transaction created: ${tx}`)
     }))
   }
