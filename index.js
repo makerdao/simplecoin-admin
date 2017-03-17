@@ -180,10 +180,10 @@ let collateral_balance_view = (
 ) => div({}, [
   Number(balance),
   div({ style: { float: "right" } }, [
-    roles.issuer && a({ onClick: () => issue(address, id),
+    (roles.owner || roles.issuer) && a({ onClick: () => issue(address, id),
                       }, ["Issue"]),
     " ",
-    roles.issuer && a({ onClick: () => cover(address, id),
+    (roles.owner || roles.issuer) && a({ onClick: () => cover(address, id),
                       }, ["Cover"]),
     " ",
     !!Number(balance) && a({ onClick: () => transfer(token),
@@ -340,6 +340,8 @@ function unregister(address, id) {
 function issue(address, id) {
   let x = prompt(`Issue coins with how many of these collateral tokens?`)
   if (Number(x)) {
+    console.log(address, id, x)
+    console.log(Simplecoin(address).issue)
     send(Simplecoin(address).issue, [id, Number(x)], hopefully(tx => {
       alert(`Transaction created: ${tx}`)
     }))
