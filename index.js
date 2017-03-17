@@ -1,6 +1,6 @@
 /// index.js -- UI components, application-specific logic
 
-init()
+setTimeout(() => init(), 500)
 setInterval(() => chain.env && reload(), 3000)
 
 let Simplecoin = x => chain.Simplecoin.at(x)

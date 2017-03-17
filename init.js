@@ -11,9 +11,7 @@ for (let phase of uniq(map(all("[data-when]"), x => x.dataset.when))) {
 }
 
 let chain = {} // Holds contract classes and instances (from dapple)
-let web3 = new Web3(this.web3 ? this.web3.currentProvider : (
-  new Web3.providers.HttpProvider("http://localhost:8545")
-))
+let web3 = null;
 
 let state = State({}) // Holds both persistent and runtime state
 let update = (x, $) => (assign(state, x), redraw($))
@@ -21,6 +19,10 @@ let persist = (x, $) => (assign(storage, convert(x, json)), update(x, $))
 let reload = $ => parallel(fetch, hopefully(x => update(x, $)))
 
 function init() {
+  web3 = new Web3(this.web3 ? this.web3.currentProvider : (
+    new Web3.providers.HttpProvider("http://localhost:8545")
+  ))
+
   // Load persistent state (from local storage)
   assign(state, convert(storage, unjson))
   // Determine network version (in order to infer `chain.env')
