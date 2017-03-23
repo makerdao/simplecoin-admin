@@ -1,9 +1,9 @@
 const factoryConfig = {
-    'kovan' : '0xd621b5328dd7bd9bba0def2240fbfddc1c8779bc',
+    'kovan' : '0x393de83a3b83cc62901c2461ef0cc116dadfc05a',
     'live'  : '',
 }
 
 const feedConfig = {
-    'kovan' : '0x27c6f14b11d4d4616fd09ce3038693085f404500',
+    'kovan' : '0xb179dca6a23920e83f63841a8154b178ed0ef922',
     'live'  : '',
 }
