@@ -1,12 +1,7 @@
-env ?= morden
 prefix ?= /usr/local
 SHELL = bash
 
-test:; dapple test --report
 run:; python -m SimpleHTTPServer
-deploy:; dapple run deploy/$(env).ds -e $(env)
-build:; dapple build -e $(env)
-.PHONY: deploy build
 
 dirs = {bin,libexec}
 dirs:; mkdir -p $(prefix)/$(dirs)
